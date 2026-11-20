@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rotunda of Gateways — Milestone Report</title>
+<style>
+@page { size: Letter; margin: 0.7in 0.75in; }
+:root { --ink:#1b1410; --dim:#5b4f45; --brass:#9a7428; --line:#d9cbb0; }
+body { font: 10.5pt/1.5 Georgia, 'Times New Roman', serif; color: var(--ink); margin: 0; }
+h1 { font-size: 22pt; font-weight: normal; letter-spacing: .04em; margin: 0 0 2pt; }
+h2 { font-size: 13.5pt; color: var(--brass); border-bottom: 1px solid var(--line); padding-bottom: 2pt; margin: 18pt 0 6pt; page-break-after: avoid; }
+h3 { font-size: 11pt; margin: 12pt 0 3pt; page-break-after: avoid; }
+p { margin: 0 0 7pt; }
+.meta { color: var(--dim); margin-bottom: 12pt; font-size: 10pt; }
+table { border-collapse: collapse; width: 100%; margin: 4pt 0 10pt; font-size: 9.5pt; page-break-inside: avoid; }
+th, td { border-bottom: 1px solid var(--line); padding: 3pt 6pt; text-align: left; vertical-align: top; }
+th { background: #f4ede0; font-weight: 600; }
+td.ok { color: #2d6a2d; font-weight: 600; white-space: nowrap; }
+td.part { color: #8a5a00; font-weight: 600; white-space: nowrap; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+code { font: 9pt Consolas, Menlo, monospace; background: #f4ede0; padding: 0 2pt; }
+figure { margin: 6pt 0 10pt; page-break-inside: avoid; }
+figure img { width: 100%; display: block; border: 1px solid var(--line); }
+figcaption { font-size: 9pt; color: var(--dim); margin-top: 3pt; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6pt; }
+.grid2 figure, .grid3 figure { margin: 0; }
+ul { margin: 0 0 8pt; padding-left: 16pt; } li { margin-bottom: 2pt; }
+.break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>Rotunda of Gateways</h1>
+<div class="meta">Computer Graphics Final Project — Milestone Report · November 22, 2026<br>
+Sri Ashitha Gadamsetty (sg2119) · Rohan Sharma (rs2273)<br>
+Live demo: claude.ai/artifact/EGchN9THVw5VQ3Z4Af9aW7 · Source: <code>rotunda-of-gateways/</code> (attached) · Video: <code>rotunda-demo-1080p.mp4</code> (attached)</div>
+
+<figure><img src="../media/rotunda-overview.png" alt="The rotunda with its three doors">
+<figcaption>Figure 1. The Sanctum rotunda: the Ring of Sparks, Ashen Arch and Runed Lintel, each showing a preview of the realm it currently leads to.</figcaption></figure>
+
+<h2>1. Objective</h2>
+<p>We are building an interactive, real-time 3D recreation of a “Rotunda of Gateways” inspired by the Sanctum Sanctorum in Marvel’s <em>Doctor Strange</em>. The user explores a circular room with three magical doors. Each door can be tuned to one of several environments (“realms”). The user picks a realm, watches the portal change, and walks through the door into that environment and back again. The project runs in the browser using WebGL through three.js, and the doors and furniture are modeled in Blender.</p>
+
+<h2>2. Status against the proposal</h2>
+<table>
+<tr><th style="width:34%">Proposal challenge</th><th style="width:11%">Status</th><th>What is implemented</th></tr>
+<tr><td>1. Sanctum room: walls, floor, ceiling, windows</td><td class="ok">Done</td><td>Round room (radius 9.6 m, height 8 m) with a coffered dome and an oculus, 12 pilasters, 8 arched windows, a large round window, a brass-inlaid floor, sconces and a floating central eye. Furnished with Blender-modeled bookshelves, a relic case, a lectern, an armillary globe and a carved pedestal.</td></tr>
+<tr><td>2. Three doors with distinct designs</td><td class="ok">Done</td><td>The door frames are modeled in Blender: a brass sling-ring hoop, a pointed stone arch built from individual blocks, and a stone doorway with a glowing rune band. Animated glow parts are added in code.</td></tr>
+<tr><td>3. Several environments per door</td><td class="ok">Done (9)</td><td>Ring of Sparks: Snow Peak, Aurora Lake, Ice Cavern. Ashen Arch: Dark Dimension, Desert Dusk, Ember Canyon. Runed Lintel: Neon Rooftop, Nebula Dais, Mirror Dimension. All can be walked into.</td></tr>
+<tr><td>4. Lighting for the room and each environment</td><td class="ok">Done</td><td>Rotunda: a spotlight from the round window with soft shadows, a reflection map for the metals, flickering sconces and a coloured light at each door. Each realm has its own lights, sky, fog and colour palette (§3.5).</td></tr>
+<tr><td>5. Magical effects around the doors</td><td class="ok">Done</td><td>Custom GLSL portal shader (noise warping, swirls, expanding rings, glowing edges), spark particles flowing around each door frame, a spinning rune circle on the floor, spinning glow arcs and a gem.</td></tr>
+<tr><td>6. Select a door and change its environment</td><td class="ok">Done</td><td>Click a door (detected with ray casting) or press 1–3; pick a realm from the preview cards or with <code>[</code> <code>]</code>. The portal cross-fades to the new realm, and the door’s colour and light change to match.</td></tr>
+<tr><td>7. Camera controls</td><td class="ok">Done</td><td>First-person walking (WASD/arrows, Shift to run, drag to look) with collision; an orbit view (O, wheel to zoom); on-screen buttons on touch screens; “Step through” walks you to the door automatically.</td></tr>
+<tr><td>Timeline 5: transitions between rooms</td><td class="part">Partial</td><td>A colour fade, tinted to the realm, runs as you cross the door. A seamless walk-through with live portals is planned for the final submission (§5).</td></tr>
+</table>
+
+<h2>3. Technical approach</h2>
+
+<h3>3.1 Architecture</h3>
+<p>The app is written in plain JavaScript using three.js (r128) and the Vite build tool. Each part of the scene lives in its own file: <code>rotunda.js</code> (the room), <code>portal.js</code> (the portal shader and door construction), <code>doors.js</code>, one file per realm in <code>realms/</code>, <code>models.js</code> (loading the Blender models) and <code>main.js</code> (input, camera, travelling between scenes, and the frame loop). The rotunda and each realm are separate scenes. A realm is built the first time you enter it and kept for later visits, and only the scene you are in is drawn. A one-file build is published as a live web page.</p>
+
+<h3>3.2 Modeling: code-generated geometry and Blender</h3>
+<p>The room itself is built in code. The dome is a curved profile spun around the centre axis. The walls are an open cylinder. The floor inlay, wall panels, coffers, windows and rune textures are painted onto images by our own code at startup, using our own noise functions. The realms build their terrain and rocks in code too. For example, mountains and cave walls are simple shapes whose points are pushed around by noise, and the desert is a 170×170 grid raised by noise and coloured by height.</p>
+<p>The door frames and furniture are modeled in <strong>Blender 5.1</strong> by Python scripts in <code>blender/</code>. The scripts run Blender in the background, build each piece using extrusions, bevels, boolean cuts and arrays, save a <code>.blend</code> file, and export a <code>.glb</code> model. We agreed on fixed rules so the models fit the code: 1 unit = 1 m, the origin is at the floor in the centre of the base, the front faces forward, and the materials have fixed names. The <code>Glow</code> and <code>RuneBand</code> materials are swapped at load time for materials that change colour with the selected realm. Each door opening is modeled to match the shape the portal shader draws. If a model fails to load, the code-built version of that piece is used instead.</p>
+<div class="grid3">
+<figure><img src="../../docs/blender/door_ring.png" alt=""><figcaption>Ring of Sparks frame (Blender)</figcaption></figure>
+<figure><img src="../../docs/blender/door_arch.png" alt=""><figcaption>Ashen Arch frame (Blender)</figcaption></figure>
+<figure><img src="../../docs/blender/door_lintel.png" alt=""><figcaption>Runed Lintel frame (Blender)</figcaption></figure>
+<figure><img src="../../docs/blender/prop_bookshelf.png" alt=""><figcaption>Bookshelf</figcaption></figure>
+<figure><img src="../../docs/blender/prop_relic_case.png" alt=""><figcaption>Relic case</figcaption></figure>
+<figure><img src="../../docs/blender/prop_globe.png" alt=""><figcaption>Armillary globe</figcaption></figure>
+</div>
+<table>
+<tr><th>Model</th><th class="num">Triangles</th><th class="num">Size</th><th>Model</th><th class="num">Triangles</th><th class="num">Size</th></tr>
+<tr><td>door_ring</td><td class="num">17,064</td><td class="num">555 KB</td><td>prop_bookshelf</td><td class="num">22,392</td><td class="num">602 KB</td></tr>
+<tr><td>door_arch</td><td class="num">5,240</td><td class="num">136 KB</td><td>prop_relic_case</td><td class="num">7,548</td><td class="num">201 KB</td></tr>
+<tr><td>door_lintel</td><td class="num">3,132</td><td class="num">98 KB</td><td>prop_lectern</td><td class="num">5,844</td><td class="num">146 KB</td></tr>
+<tr><td>prop_pedestal</td><td class="num">6,544</td><td class="num">182 KB</td><td>prop_globe</td><td class="num">10,464</td><td class="num">281 KB</td></tr>
+</table>
+
+<h3>3.3 The portal shader</h3>
+<p>Each door’s opening is a flat plane drawn by a custom shader. The shader cuts the plane to the door’s shape (a circle, a pointed arch or a rectangle) and throws away pixels outside it. Inside, it bends the realm’s preview image with layered noise, adds swirls and outward-moving rings in the door’s colour, and adds a glow that grows toward the edge. Hovering or selecting a door makes the swirl stronger and the glow brighter. When the realm changes, the shader blends from the old preview to the new one over 0.9 s while the door’s colour and light change with it.</p>
+
+<h3>3.4 Particles and animated effects</h3>
+<p>Each door has 240 sparks that flow around its frame, drifting outward and fading. Their colours update every frame, and they are blended additively so overlapping sparks glow. The realms use the same technique for snow, rain, embers, dust, fireflies and floating motes. Other animation includes spinning glow arcs and a gem, a rotating rune circle on the floor, the eye’s rotating rings, flickering flames, bobbing rocks and crystals, and city traffic.</p>
+
+<figure><img src="../media/realm-picker.png" alt=""><figcaption>Figure 2. Choosing a realm: the selected door glows, and the preview cards set where it leads.</figcaption></figure>
+
+<h3>3.5 Lighting in each realm</h3>
+<div class="grid3">
+<figure><img src="../media/realm-snow-peak.png" alt=""><figcaption>Snow Peak: cold sun, haze, 1,800 snowflakes</figcaption></figure>
+<figure><img src="../media/realm-aurora-lake.png" alt=""><figcaption>Aurora Lake: wavy additive aurora ribbons reflected in the lake, lamp light</figcaption></figure>
+<figure><img src="../media/realm-ice-cavern.png" alt=""><figcaption>Ice Cavern: 5 pulsing coloured lights, glowing crystals</figcaption></figure>
+<figure><img src="../media/realm-dark-dimension.png" alt=""><figcaption>Dark Dimension: animated lava shader, glowing cracks, floating rocks</figcaption></figure>
+<figure><img src="../media/realm-desert-dusk.png" alt=""><figcaption>Desert Dusk: low sun, terrain coloured by height, blowing dust</figcaption></figure>
+<figure><img src="../media/realm-ember-canyon.png" alt=""><figcaption>Ember Canyon: a row of flickering torch lights, rising embers, thick haze</figcaption></figure>
+<figure><img src="../media/realm-neon-rooftop.png" alt=""><figcaption>Neon Rooftop: magenta and cyan lights, glowing windows, rain</figcaption></figure>
+<figure><img src="../media/realm-nebula-dais.png" alt=""><figcaption>Nebula Dais: shader-generated nebula sky, ringed planet</figcaption></figure>
+<figure><img src="../media/realm-mirror-dimension.png" alt=""><figcaption>Mirror Dimension: orbiting coloured lights, see-through rotating cubes</figcaption></figure>
+</div>
+<p>In the rotunda, the main light is a spotlight shining in through the round window and casting soft shadows. An environment reflection map makes the brass reflect the room, while the dark wood stays matte. We removed six real lights from the sconces, which were costing about eight light calculations per pixel. Instead, their warm glow is painted directly into the wall texture, and the flames flicker by changing colour and size.</p>
+
+<h3>3.6 Interaction and travel</h3>
+<p>Hovering and clicking a door use ray casting from the mouse into the scene. Travel is handled as a small set of states (in the rotunda, travelling, in a realm), and input is ignored during a transition. To detect walking through a door, the player’s position is converted into that door’s own coordinates. Crossing from in front of the door’s plane to behind it, within the opening’s width, starts the trip. Each realm has a return ring behind its starting point that works the same way. “Step through” walks the player to the door automatically, steering around the central pedestal instead of through it. Free-standing furniture blocks the player.</p>
+
+<h3>3.7 Performance</h3>
+<p>A code audit found several costly spots, which we fixed. We merged the Neon Rooftop’s 260 buildings into one mesh, cutting that realm from 125 to 22 draw calls. We share materials across the Mirror Dimension’s cubes, and only the active scene is updated each frame. We capped the pixel ratio at 1.5 and use fewer noise layers in the full-screen sky and lava shaders. A <strong>Quality</strong> switch (Q) drops to pixel ratio 1 and turns shadows off. An <strong>FPS counter</strong> (F) shows the frame rate and draw calls.</p>
+<table>
+<tr><th>Scene</th><th class="num">Draw calls</th><th>Scene</th><th class="num">Draw calls</th></tr>
+<tr><td>Rotunda (with shadow pass)</td><td class="num">83</td><td>Desert Dusk</td><td class="num">26</td></tr>
+<tr><td>Snow Peak</td><td class="num">69</td><td>Ember Canyon</td><td class="num">73</td></tr>
+<tr><td>Aurora Lake</td><td class="num">80</td><td>Neon Rooftop</td><td class="num">22</td></tr>
+<tr><td>Ice Cavern</td><td class="num">29</td><td>Nebula Dais</td><td class="num">25</td></tr>
+<tr><td>Dark Dimension</td><td class="num">21</td><td>Mirror Dimension</td><td class="num">73</td></tr>
+</table>
+<p>On our development machine (NVIDIA RTX 5080), every scene runs at the display’s frame-rate cap. We have not yet measured laptops with integrated graphics; that is the first item in §5.</p>
+
+<h3>3.8 Testing</h3>
+<p><code>npm run check</code> opens the app in a browser, enters all nine realms, and reports errors, draw calls and frame rate, saving a screenshot of each scene. <code>npm run video</code> records the demo video. It controls the browser’s clock and saves one frame at a time, so the video is smooth no matter how fast the scene renders.</p>
+
+<h2>4. What changed since the proposal</h2>
+<ul>
+<li>We moved the project from a single web page into a git repository with separate modules and an automated test.</li>
+<li>We added the Blender models (8 assets, all generated by scripts that anyone can re-run), loaded with a fallback to the code-built versions.</li>
+<li>We fixed four interaction bugs: input during transitions, the auto-walk passing through the pedestal, the Enter key after clicking a door button, and clicks during transitions.</li>
+<li>We fixed visual problems: hard edges on the aurora, square stars in the nebula sky, and glare in some scenes.</li>
+<li>We added shadows, reflections on metals, the quality switch and the FPS counter.</li>
+</ul>
+
+<h2>5. Plan for the final submission</h2>
+<ul>
+<li><strong>Live portals.</strong> Draw each door’s current realm from a camera that matches the player’s view, so the portal acts as a real window into the realm with correct perspective. This replaces the painted preview images, and lets you walk through without a fade.</li>
+<li><strong>Glow and baked lighting.</strong> Add a bloom effect so the portals, runes and sparks glow. Bake ambient shading and lighting for the rotunda in Blender.</li>
+<li><strong>Materials and models.</strong> Add realistic textures for wood, stone and brass, and model more of the room in Blender (balcony railing, window frames, door surrounds).</li>
+<li><strong>Transitions.</strong> A swirl effect as you step through, and a small burst of particles when a realm is chosen.</li>
+<li><strong>Performance on laptops.</strong> Measure on integrated-graphics laptops, and lower the quality automatically when the frame rate drops.</li>
+</ul>
+
+<h2>6. Known issues</h2>
+<ul>
+<li>The realm previews inside the portals are painted 2D images. They don’t yet change with the viewing angle (fixed by the live portals above).</li>
+<li>Laptop performance has not been measured yet.</li>
+<li>The return rings in the realms have no reflection map, so their brass looks slightly darker than in the rotunda.</li>
+</ul>
+
+<h2>7. How to run</h2>
+<p>Live: open the demo link above. Locally: <code>npm install</code>, then <code>npm run dev</code>. Build: <code>npm run build</code> (multi-file) or <code>npm run build:single</code> (one HTML file). Rebuild the Blender models: <code>python blender/build_all.py</code>. Controls: WASD/arrows to walk, Shift to run, drag to look, click a door or press 1–3 to select it, <code>[</code> <code>]</code> to change realm, Enter to step through, O for orbit view, Q for quality, F for the FPS counter.</p>
+<p><em>Tools: three.js r128, Vite, Blender 5.1 (Python API), Playwright (automated testing and video capture). AI coding assistance (Claude Code) was used for parts of the implementation and testing.</em></p>
+
+</body>
+</html>

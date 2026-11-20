@@ -9,7 +9,13 @@ export async function loadModels() {
   const loader = new GLTFLoader();
   await Promise.all(Object.entries(URLS).map(async ([path, url]) => {
     const name = path.replace(/^.*\/|\.glb$/g, '');
-    try { models[name] = (await loader.loadAsync(url)).scene; }
+    try {
+      // single-file build inlines models as data: URLs; decode them here so hosts whose CSP blocks fetch(data:) still work
+      const gltf = url.startsWith('data:')
+        ? await new Promise((res, rej) => loader.parse(Uint8Array.from(atob(url.slice(url.indexOf(',') + 1)), c => c.charCodeAt(0)).buffer, '', res, rej))
+        : await loader.loadAsync(url);
+      models[name] = gltf.scene;
+    }
     catch (err) { console.warn('model "' + name + '" failed to load, using procedural fallback:', err); }
   }));
 }
