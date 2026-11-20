@@ -13,7 +13,7 @@ export default function build(){
     fragmentShader:['varying vec3 vD;uniform float uTime;',
       'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
       'float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}',
-      'float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;}',
+      'float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;}',
       'void main(){vec3 d=normalize(vD);vec2 sp=vec2(atan(d.z,d.x),asin(clamp(d.y,-1.,1.)));',
       'float n1=fbm(sp*vec2(1.6,2.4)+uTime*.01);float n2=fbm(sp*vec2(2.6,3.6)+7.+vec2(-uTime*.015,0.));',
       'vec3 c=vec3(.02,.01,.07)+vec3(.55,.12,.62)*smoothstep(.38,.85,n1)+vec3(.04,.45,.55)*smoothstep(.45,.9,n2)*.8;',

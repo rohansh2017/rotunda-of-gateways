@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { TAU, clamp, lerp, mulberry, fract, hash2, vnoise, fbm, canvasTex, spriteTex } from '../util.js';
 import { followers, skyDome, starField } from '../sky.js';
 import { brass, floorTex } from '../rotunda.js';
@@ -29,12 +30,14 @@ export default function build(){
   const win=canvasTex(64,128,(c,w,h)=>{c.fillStyle='#000';c.fillRect(0,0,w,h);for(let x=0;x<8;x++)for(let y=0;y<16;y++){if(r()<.42){c.fillStyle=['#ffd88a','#ff7ac8','#7af0ff','#ffffff'][Math.floor(r()*4)];c.fillRect(x*8+1,y*8+2,5,4);}}});
   win.wrapS=win.wrapT=THREE.RepeatWrapping;
   const bm=new THREE.MeshStandardMaterial({color:0x140c22,roughness:.8,emissive:0xffffff,emissiveMap:win,emissiveIntensity:.9});
+  const bg=[];
   for(let i=0;i<260;i++){
     const a=r()*TAU,d=48+Math.pow(r(),.8)*200,w=8+r()*14,dd=8+r()*14,h=14+r()*(30+d*.45);
     const geo=new THREE.BoxGeometry(w,h,dd);const uv=geo.attributes.uv;
     for(let k=0;k<uv.count;k++){uv.setXY(k,uv.getX(k)*w/14,uv.getY(k)*h/20);}
-    const b=new THREE.Mesh(geo,bm);b.position.set(Math.cos(a)*d,h/2-2.6,Math.sin(a)*d);g.add(b);
+    geo.translate(Math.cos(a)*d,h/2-2.6,Math.sin(a)*d);bg.push(geo);
   }
+  g.add(new THREE.Mesh(BufferGeometryUtils.mergeBufferGeometries(bg),bm)); /* one draw call for all buildings */
   const NT=110,tp=new Float32Array(NT*3),tc=new Float32Array(NT*3),ts=[];
   for(let i=0;i<NT;i++){ts.push({x:(r()-.5)*420,y:12+r()*34,z:-90+Math.floor(r()*5)*40-60,v:(8+r()*16)*(r()<.5?-1:1)});const c=r()<.5?[1,.8,.5]:[1,.3,.3];tc[i*3]=c[0];tc[i*3+1]=c[1];tc[i*3+2]=c[2];}
   const tg=new THREE.BufferGeometry();tg.setAttribute('position',new THREE.BufferAttribute(tp,3));tg.setAttribute('color',new THREE.BufferAttribute(tc,3));

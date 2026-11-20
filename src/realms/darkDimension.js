@@ -13,7 +13,7 @@ export default function build(){
   const LFS=['varying vec2 vP;uniform float uTime;',
     'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
     'float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}',
-    'float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;}',
+    'float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;}',
     'void main(){float n=fbm(vP*.05+vec2(uTime*.03,0.));n+=fbm(vP*.11-vec2(0.,uTime*.045))*.6;n*=.7;float l=smoothstep(.3,.75,n);vec3 c=mix(vec3(.12,.02,.01),vec3(1.,.33,.05),l);c+=vec3(1.,.75,.2)*smoothstep(.62,.8,n);gl_FragColor=vec4(c,1.);}'].join('\n');
   const LT={value:0};
   const lava=new THREE.Mesh(new THREE.PlaneGeometry(1000,1000),new THREE.ShaderMaterial({uniforms:{uTime:LT},vertexShader:'varying vec2 vP;void main(){vP=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:LFS}));

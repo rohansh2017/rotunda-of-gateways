@@ -30,9 +30,10 @@ const floorTex=canvasTex(1024,1024,(g,w,h)=>{
   g.fillStyle='#d7b165';g.beginPath();g.arc(c,c,8,0,TAU);g.fill();
 });
 const floor=new THREE.Mesh(new THREE.CircleGeometry(R+.15,96),new THREE.MeshStandardMaterial({map:floorTex,roughness:.55,metalness:.05}));
-floor.rotation.x=-Math.PI/2;rotunda.add(floor);
+floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;rotunda.add(floor);
 
 /* walls */
+const SCONCE_U=.8333;
 const wallTex=canvasTex(1024,512,(g,w,h)=>{
   const r=mulberry(3);
   g.fillStyle='#6a4635';g.fillRect(0,0,w,h);
@@ -49,10 +50,14 @@ const wallTex=canvasTex(1024,512,(g,w,h)=>{
   g.fillStyle='#3a2217';g.fillRect(0,0,w,28);g.fillStyle='#b98a3a';g.fillRect(0,28,w,3);
   const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'rgba(0,0,0,.5)');gr.addColorStop(.4,'rgba(0,0,0,0)');
   g.fillStyle=gr;g.fillRect(0,0,w,h);
+  /* warm glow above each sconce (one per tile; u from sconce angle, y from sconce height) */
+  g.save();g.translate(w*SCONCE_U,h*(1-3.5/H));g.scale(1.6,1);
+  const gl=g.createRadialGradient(0,0,0,0,0,110);gl.addColorStop(0,'rgba(255,170,80,.8)');gl.addColorStop(.5,'rgba(255,140,60,.35)');gl.addColorStop(1,'rgba(255,120,40,0)');
+  g.fillStyle=gl;g.fillRect(-200,-200,400,400);g.restore();
 },{repeat:[6,1]});
 wallTex.offset.set(1/12,0);
 const wall=new THREE.Mesh(new THREE.CylinderGeometry(R,R,H,96,1,true),new THREE.MeshStandardMaterial({map:wallTex,roughness:.85,side:THREE.BackSide}));
-wall.position.y=H/2;rotunda.add(wall);
+wall.position.y=H/2;wall.receiveShadow=true;rotunda.add(wall);
 
 /* coffered dome */
 const ceilTex=canvasTex(1024,512,(g,w,h)=>{
@@ -88,7 +93,7 @@ for(let k=0;k<12;k++){
   const cap=new THREE.Mesh(new THREE.BoxGeometry(.95,.35,.6),brass);cap.position.y=H-.2;
   const base=new THREE.Mesh(new THREE.BoxGeometry(.95,.4,.6),brass);base.position.y=.2;
   const inlay=new THREE.Mesh(new THREE.BoxGeometry(.08,H-1.2,.05),brass);inlay.position.set(0,H/2,.24);
-  col.add(shaft,cap,base,inlay);rotunda.add(col);
+  col.add(shaft,cap,base,inlay);col.children.forEach(m=>m.castShadow=true);rotunda.add(col);
 }
 
 /* arched windows */
@@ -120,12 +125,14 @@ const roundTex=canvasTex(512,512,(g,w,h)=>{
   for(let i=0;i<3;i++){const a=i/3*TAU-Math.PI/2;g.beginPath();g.arc(c+Math.cos(a)*c*.1,c+Math.sin(a)*c*.1,c*.14,0,TAU);g.stroke();}
   for(let i=0;i<12;i++){const a=(i+.5)/12*TAU;g.beginPath();g.arc(c+Math.cos(a)*c*.64,c+Math.sin(a)*c*.64,14,0,TAU);g.stroke();}
 });
+let spot;
 {
   const grp=new THREE.Group();grp.position.copy(onWall(90,R-.05));grp.position.y=5.3;grp.lookAt(0,5.3,0);
   const disc=new THREE.Mesh(new THREE.CircleGeometry(2.4,64),new THREE.MeshBasicMaterial({map:roundTex,transparent:true,color:0xffffff}));
   const rim=new THREE.Mesh(new THREE.TorusGeometry(2.4,.13,12,96),brass);
   grp.add(disc,rim);rotunda.add(grp);
-  const spot=new THREE.SpotLight(0xffe2ad,2.2,34,.55,.7,1);
+  spot=new THREE.SpotLight(0xffe2ad,2.2,34,.55,.7,1);
+  spot.shadow.mapSize.set(1024,1024);spot.shadow.bias=-.0004;spot.shadow.normalBias=.03;
   spot.position.copy(grp.position).multiplyScalar(.85);spot.position.y=5.3;
   spot.target.position.set(0,0,-3);rotunda.add(spot,spot.target);
 }
@@ -138,8 +145,8 @@ const flames=[];
   const arm=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,.5,8),brass);arm.rotation.x=Math.PI/2;arm.position.z=-.1;
   const cup=new THREE.Mesh(new THREE.CylinderGeometry(.12,.07,.14,12),brass);cup.position.set(0,.05,.15);
   const flame=new THREE.Mesh(new THREE.SphereGeometry(.09,10,10),new THREE.MeshBasicMaterial({color:0xffc070}));flame.position.set(0,.2,.15);
-  const light=new THREE.PointLight(0xffa24a,.9,15,1.6);light.position.set(0,.35,.4);
-  g.add(arm,cup,flame,light);rotunda.add(g);flames.push({light,base:.9,seed:Math.random()*10});
+  arm.castShadow=cup.castShadow=true;
+  g.add(arm,cup,flame);rotunda.add(g);flames.push({flame,seed:Math.random()*10});
 });
 
 /* the central eye */
@@ -147,25 +154,26 @@ const eye=new THREE.Group();eye.position.y=1.9;rotunda.add(eye);
 {
   const ped=new THREE.Mesh(new THREE.CylinderGeometry(.55,.85,1.1,24),darkWood);ped.position.y=.55;
   const band=new THREE.Mesh(new THREE.TorusGeometry(.72,.05,10,48),brass);band.rotation.x=Math.PI/2;band.position.y=1.08;
-  rotunda.add(ped,band);
+  ped.castShadow=band.castShadow=true;rotunda.add(ped,band);
   const gold=new THREE.MeshBasicMaterial({color:0xffd27a});
   [[0,0],[1.1,0],[0,1.1]].forEach((r,i)=>{
-    const t=new THREE.Mesh(new THREE.TorusGeometry(.5+i*.14,.025,8,64),gold);t.rotation.set(r[0],r[1],i*.7);eye.add(t);
+    const t=new THREE.Mesh(new THREE.TorusGeometry(.5+i*.14,.025,8,64),gold);t.rotation.set(r[0],r[1],i*.7);t.castShadow=true;eye.add(t);
   });
   const core=new THREE.Mesh(new THREE.SphereGeometry(.17,20,20),new THREE.MeshBasicMaterial({color:0x9bffd0}));eye.add(core);
   const l=new THREE.PointLight(0xc8ffd8,.9,10,1.5);eye.add(l);
 }
 
-const hemi=new THREE.HemisphereLight(0xffe2bf,0x2a1810,.5);
-const keyLight=new THREE.PointLight(0xffd9a0,.55,26,1.2);keyLight.position.set(0,H-.8,0);
+const hemi=new THREE.HemisphereLight(0xffe2bf,0x2a1810,1);
+const keyLight=new THREE.PointLight(0xffd9a0,.9,26,1.2);keyLight.position.set(0,H-.8,0);
 rotunda.add(hemi,keyLight);
 
+const setShadows=on=>{spot.castShadow=on;};
 function updateRotunda(t){
   eye.children.forEach((c,i)=>{if(c.geometry&&c.geometry.type==='TorusGeometry'){c.rotation.x+=.004*(i+1);c.rotation.y+=.003*(3-i);}});
   eye.position.y=1.95+Math.sin(t*1.2)*.06;
-  flames.forEach(f=>{f.light.intensity=f.base*(.85+.15*Math.sin(t*9+f.seed)*Math.sin(t*3.7+f.seed*2));});
+  flames.forEach(f=>{const k=.85+.15*Math.sin(t*9+f.seed)*Math.sin(t*3.7+f.seed*2);f.flame.material.color.setRGB(1*k,.75*k,.44*k);f.flame.scale.set(k,.9+.3*k,k);});
 }
 rotunda.updateMatrixWorld(true);
 
 
-export { rotunda, R, H, brass, darkWood, onWall, floorTex, updateRotunda };
+export { rotunda, R, H, brass, darkWood, onWall, floorTex, updateRotunda, setShadows };

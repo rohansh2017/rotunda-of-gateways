@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { TAU, clamp, lerp, mulberry, fract, hash2, vnoise, fbm, canvasTex, spriteTex } from './util.js';
-import { rotunda, H, updateRotunda } from './rotunda.js';
+import { rotunda, H, updateRotunda, setShadows } from './rotunda.js';
 import { REALMS, previewTex } from './realms/catalog.js';
 import { doors, doorGroups } from './doors.js';
 import { getEnv } from './realms/index.js';
@@ -12,7 +12,7 @@ const stage=$('#stage');
 let renderer;
 try{ renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'}); }
 catch(err){ $('#nogl').hidden=false; throw err; }
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap; /* per-light castShadow is toggled by quality */
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.1;
@@ -38,7 +38,7 @@ const orbit={az:0,el:.3,dist:7.5,target:new V3(0,2.6,0),auto:true};
 const ORBIT_MAX={2:18,5:6.5,1:16,6:16,0:24,3:20,4:24,7:20,8:30};
 const keys={};let auto=null,hoverDoor=-1;
 const dock=$('#dock'),cards=$('#cards'),realmsPanel=$('#realms'),whereEl=$('#where'),hint=$('#hint'),fade=$('#fade');
-const btnMode=$('#btnMode'),btnReturn=$('#btnReturn');
+const btnMode=$('#btnMode'),btnReturn=$('#btnReturn'),btnQ=$('#btnQ'),fpsEl=$('#fps');
 const tmp=new V3();
 
 const doorBtns=doors.map(d=>{
@@ -97,6 +97,17 @@ $('#btnClose').addEventListener('click',()=>selectDoor(-1));
 $('#btnStep').addEventListener('click',()=>stepThrough());
 btnReturn.addEventListener('click',()=>travel('rotunda'));
 
+/* quality (pixel ratio + shadows) and fps readout */
+let low=false;try{low=localStorage.getItem('rotunda-q')==='low';}catch(e){}
+function setQuality(l){
+  low=l;try{localStorage.setItem('rotunda-q',l?'low':'high');}catch(e){}
+  renderer.setPixelRatio(l?1:Math.min(window.devicePixelRatio||1,1.5));setShadows(!l);resize();
+  btnQ.textContent='Quality: '+(l?'Low':'High');btnQ.setAttribute('aria-pressed',String(l));
+}
+btnQ.addEventListener('click',()=>setQuality(!low));
+let fpsT=0,fpsN=0;
+function toggleFps(){fpsEl.hidden=!fpsEl.hidden;fpsT=fpsN=0;}
+
 /* picking */
 const cv=renderer.domElement,ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
 function pickDoor(cx,cy){
@@ -140,6 +151,8 @@ addEventListener('keydown',e=>{
   }else if(k==='1'||k==='2'||k==='3'){if(state.loc==='rotunda'&&!state.busy)selectDoor(+k-1);}
   else if(k==='['||k===']'){cycleRealm(k===']'?1:-1);}
   else if(k==='enter'){const a=document.activeElement;if(a&&a.tagName==='BUTTON'&&a.id!=='btnStep'&&!a.classList.contains('door')&&!a.classList.contains('card'))return;e.preventDefault();stepThrough();}
+  else if(k==='q')setQuality(!low);
+  else if(k==='f')toggleFps();
   else if(k==='o'){if(!state.busy)setMode(state.mode==='orbit'?'walk':'orbit');}
   else if(k==='escape'){auto=null;selectDoor(-1);}
 });
@@ -268,6 +281,7 @@ function tick(){
     state.env.update(t,dt);state.env.gate.update(t,dt,.4);
   }
   renderer.render(scene,camera);
+  if(!fpsEl.hidden){fpsT+=dt;fpsN++;if(fpsT>=1){fpsEl.textContent=(fpsN/fpsT).toFixed(0)+' fps\n'+renderer.info.render.calls+' draws';fpsT=fpsN=0;}}
 }
 window.__rotunda={state,doors,travel,getEnv,REALMS,renderer,get scene(){return scene;},camera};
-refreshDock();selectDoor(-1);setMode('walk');resize();tick();
+refreshDock();selectDoor(-1);setMode('walk');setQuality(low);tick();

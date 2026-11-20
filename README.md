@@ -20,6 +20,7 @@ npm run check         # headless Edge smoke test (fps, draw calls, screenshots i
 - `[` / `]`: cycle the realm behind the selected door
 - Enter: step through
 - O: orbit view
+- Q: quality high/low; F: fps and draw-call readout
 
 ## Source map (`src/`)
 

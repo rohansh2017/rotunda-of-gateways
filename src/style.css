@@ -27,6 +27,8 @@ button:focus-visible{outline:2px solid var(--rune);outline-offset:2px}
 .brand h1{margin:0;font-weight:400;font-size:clamp(1.05rem,2.6vw,1.5rem);letter-spacing:.2em;text-transform:uppercase;color:var(--brass-hi);text-shadow:0 2px 14px rgba(0,0,0,.8);text-wrap:balance}
 .brand p{margin:6px 0 0;font-family:var(--f-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);text-shadow:0 1px 8px rgba(0,0,0,.9)}
 
+#fps{position:absolute;left:16px;top:calc(76px + env(safe-area-inset-top,0px));pointer-events:none;font-family:var(--f-mono);font-size:.7rem;color:var(--dim);background:rgba(0,0,0,.45);padding:3px 7px;white-space:pre}
+#fps[hidden]{display:none}
 .tools{position:absolute;right:16px;top:calc(14px + env(safe-area-inset-top,0px));display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .btn{background:var(--panel);border:1px solid var(--line);padding:9px 14px;font-family:var(--f-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;border-radius:2px;backdrop-filter:blur(6px)}
 .btn:hover{border-color:var(--brass-hi);color:var(--brass-hi)}

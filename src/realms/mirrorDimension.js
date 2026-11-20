@@ -10,14 +10,15 @@ export default function build(){
   g.add(skyDome([[0,'#1a0a40'],[.4,'#8a2a9a'],[.499,'#e0359e'],[.5,'#10c8c0'],[1,'#0a2a4a']]));
   const chk=canvasTex(512,512,(c,w,h)=>{for(let y=0;y<8;y++)for(let x=0;x<8;x++){c.fillStyle=(x+y)%2?'#16062e':'#0f9d96';c.fillRect(x*w/8,y*h/8,w/8,h/8);}},{repeat:[50,50]});
   const fl=new THREE.Mesh(new THREE.CircleGeometry(300,64),new THREE.MeshStandardMaterial({map:chk,roughness:.15,metalness:.6}));fl.rotation.x=-Math.PI/2;g.add(fl);
-  const rings=[];
+  const rings=[],edge=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.6});
   for(let k=0;k<5;k++){
     const grp=new THREE.Group(),n=12+k*4;
+    const cm=new THREE.Color().setHSL((.78+k*.1)%1,.8,.55);
+    const mat=new THREE.MeshStandardMaterial({color:cm,emissive:cm,emissiveIntensity:.25,transparent:true,opacity:.5,roughness:.1,metalness:.8,flatShading:true,side:THREE.DoubleSide});
     for(let i=0;i<n;i++){
-      const a=i/n*TAU,d=36+k*20+r()*6,s=6+r()*9,hue=(.78+r()*.25+k*.03)%1;
-      const cm=new THREE.Color().setHSL(hue,.8,.55);
-      const m=new THREE.Mesh(new THREE.BoxGeometry(s,s,s),new THREE.MeshStandardMaterial({color:cm,emissive:cm,emissiveIntensity:.25,transparent:true,opacity:.5,roughness:.1,metalness:.8,flatShading:true,side:THREE.DoubleSide}));
-      m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.6})));
+      const a=i/n*TAU,d=36+k*20+r()*6,s=6+r()*9;
+      const m=new THREE.Mesh(new THREE.BoxGeometry(s,s,s),mat);
+      m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),edge));
       m.position.set(Math.cos(a)*d,5+r()*38,Math.sin(a)*d);m.rotation.set(r()*3,r()*3,r()*3);grp.add(m);
     }
     g.add(grp);rings.push([grp,(k%2?-1:1)*(.02+k*.008)]);

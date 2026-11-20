@@ -14,7 +14,7 @@ const doors=DOOR_DEFS.map((def,i)=>{
   const gate=buildGate(def.shape,REALMS[realms[0]].accent,previewTex(realms[0]));
   const p=onWall(def.angle,R-.1);gate.group.position.copy(p);gate.group.lookAt(0,0,0);
   rotunda.add(gate.group);
-  gate.group.traverse(o=>{o.userData.door=i;});
+  gate.group.traverse(o=>{o.userData.door=i;if(o.isMesh&&o.material.isMeshStandardMaterial)o.castShadow=true;});
   const d={i,def,gate,realms,choice:0,hover:0,sel:0,selected:false,trans:null,prevZ:1,
     realmIndex(){return realms[d.choice];},
     setChoice(k){
