@@ -66,16 +66,9 @@ const runeRingTex=canvasTex(512,512,(g,w,h)=>{
 const GATE_DIMS=[{w:4.4,h:4.4,cy:2.5},{w:3.2,h:5.0,cy:2.5},{w:3.0,h:4.6,cy:2.3}];
 const stoneMat=new THREE.MeshStandardMaterial({color:0x3a2a22,roughness:.6,metalness:.25});
 
-function buildGate(shape,accent,tex,opts){
-  opts=opts||{};
-  const D=GATE_DIMS[shape],g=new THREE.Group();
-  const accentNow=new THREE.Color(accent),accentTo=new THREE.Color(accent);
-  const u={uTime:{value:0},uMix:{value:1},uTexA:{value:tex},uTexB:{value:tex},uAccent:{value:new THREE.Color(accent)},uShape:{value:shape},uHover:{value:0},uSel:{value:0}};
-  const portal=new THREE.Mesh(new THREE.PlaneGeometry(D.w,D.h),new THREE.ShaderMaterial({uniforms:u,vertexShader:PORTAL_VS,fragmentShader:PORTAL_FS,side:THREE.DoubleSide}));
-  portal.position.y=D.cy;g.add(portal);
-  const basics=[],emis=[],spinners=[];
-  const glowMat=(a)=>{const m=new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:a||1,blending:THREE.AdditiveBlending,depthWrite:false});basics.push(m);return m;};
-
+/* static frame around the opening: pushes meshes into g, tintable materials via glowMat/emis, animated parts into spinners.
+   Swap this for a loaded glTF frame; the portal plane, sparks and tinting stay in buildGate. */
+function buildFrame(shape,D,g,glowMat,emis,spinners,accent){
   if(shape===0){ /* sling-ring: brass hoop with orbiting spark arcs */
     const hoop=new THREE.Mesh(new THREE.TorusGeometry(2.2,.15,18,110),brass);hoop.position.y=D.cy;g.add(hoop);
     const outer=new THREE.Mesh(new THREE.TorusGeometry(2.48,.05,10,110),brass);outer.position.y=D.cy;g.add(outer);
@@ -103,6 +96,19 @@ function buildGate(shape,accent,tex,opts){
     const cap=new THREE.Mesh(new THREE.BoxGeometry(D.w+1.9,.18,.95),brass);cap.position.set(0,D.h+.58,0);g.add(cap);
     const step=new THREE.Mesh(new THREE.BoxGeometry(D.w+1.3,.12,1.3),stoneMat);step.position.set(0,.06,.35);g.add(step);
   }
+}
+
+function buildGate(shape,accent,tex,opts){
+  opts=opts||{};
+  const D=GATE_DIMS[shape],g=new THREE.Group();
+  const accentNow=new THREE.Color(accent),accentTo=new THREE.Color(accent);
+  const u={uTime:{value:0},uMix:{value:1},uTexA:{value:tex},uTexB:{value:tex},uAccent:{value:new THREE.Color(accent)},uShape:{value:shape},uHover:{value:0},uSel:{value:0}};
+  const portal=new THREE.Mesh(new THREE.PlaneGeometry(D.w,D.h),new THREE.ShaderMaterial({uniforms:u,vertexShader:PORTAL_VS,fragmentShader:PORTAL_FS,side:THREE.DoubleSide}));
+  portal.position.y=D.cy;g.add(portal);
+  const basics=[],emis=[],spinners=[];
+  const glowMat=(a)=>{const m=new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:a||1,blending:THREE.AdditiveBlending,depthWrite:false});basics.push(m);return m;};
+
+  buildFrame(shape,D,g,glowMat,emis,spinners,accent);
 
   if(opts.floorRing!==false){
     const rm=new THREE.MeshBasicMaterial({map:runeRingTex,color:accent,transparent:true,opacity:.75,blending:THREE.AdditiveBlending,depthWrite:false});basics.push(rm);
@@ -121,7 +127,7 @@ function buildGate(shape,accent,tex,opts){
   const sparks=new THREE.Points(sg,new THREE.PointsMaterial({size:.16,map:spriteTex,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
   sparks.frustumCulled=false;g.add(sparks);
 
-  const gate={group:g,portal,u,dims:D,light,shape,accent:accentNow,accentTo,
+  const gate={group:g,portal,u,dims:D,halfW:D.w/2-.2,light,shape,accent:accentNow,accentTo,
     setAccent(c){accentTo.set(c);},
     update(t,dt,boost){
       boost=boost||0;
@@ -145,4 +151,4 @@ function buildGate(shape,accent,tex,opts){
 }
 
 
-export { PORTAL_VS, PORTAL_FS, archPts, resample, runeStrip, runeRingTex, GATE_DIMS, stoneMat, buildGate };
+export { PORTAL_VS, PORTAL_FS, archPts, resample, runeStrip, runeRingTex, GATE_DIMS, stoneMat, buildGate, buildFrame };

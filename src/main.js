@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { TAU, clamp, lerp, mulberry, fract, hash2, vnoise, fbm, canvasTex, spriteTex } from './util.js';
-import { followers } from './sky.js';
 import { rotunda, H, updateRotunda } from './rotunda.js';
 import { REALMS, previewTex } from './realms/catalog.js';
 import { doors, doorGroups } from './doors.js';
@@ -19,8 +18,9 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.1;
 stage.appendChild(renderer.domElement);
 
-const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x070403);
+const rotScene=new THREE.Scene();
+rotScene.background=new THREE.Color(0x070403);
+let scene=rotScene; /* the active scene */
 const camera=new THREE.PerspectiveCamera(70,1,0.1,900);
 function resize(){
   const w=stage.clientWidth||window.innerWidth,h=stage.clientHeight||window.innerHeight;
@@ -28,7 +28,7 @@ function resize(){
 }
 window.addEventListener('resize',resize);resize();
 
-scene.add(rotunda);
+rotScene.add(rotunda);
 
 /* ---------- state, interface, controls ---------- */
 const V3=THREE.Vector3;
@@ -172,10 +172,9 @@ async function travel(kind,arg){
   state.busy=false;
 }
 function enterRealm(di,ri){
-  const e=getEnv(scene,ri);
+  const e=getEnv(ri);
   state.loc='env';state.realm=ri;state.fromDoor=di;state.env=e;
-  rotunda.visible=false;e.group.visible=true;
-  scene.background=new THREE.Color(e.bg);scene.fog=new THREE.FogExp2(e.fog.color,e.fog.density);
+  scene=e.scene;
   player.pos.set(e.spawn.x,1.7,e.spawn.z);player.yaw=e.spawn.yaw;player.pitch=0;player.vel.set(0,0,0);e.prevZ=1;
   selectDoor(-1);dock.hidden=true;btnReturn.hidden=false;whereEl.textContent=REALMS[ri].name;
   showHint('Walk back through the ring to return to the rotunda',7000);
@@ -183,8 +182,7 @@ function enterRealm(di,ri){
 }
 function leaveRealm(){
   const e=state.env,d=doors[state.fromDoor];
-  if(e)e.group.visible=false;
-  rotunda.visible=true;scene.fog=null;scene.background=new THREE.Color(0x070403);
+  scene=rotScene;
   const p=d.gate.group.localToWorld(new V3(0,1.7,2.8));player.pos.copy(p);player.vel.set(0,0,0);
   player.yaw=Math.atan2(p.x,p.z);player.pitch=0;d.prevZ=1;
   state.loc='rotunda';state.realm=-1;state.env=null;
@@ -193,6 +191,7 @@ function leaveRealm(){
 }
 
 /* movement and collision */
+const gateHalf=g=>g.halfW*g.group.scale.x; /* walkable half-opening in world units, from GATE_DIMS */
 function move(dt){
   if(state.busy||state.mode!=='walk')return;
   if(auto){
@@ -224,7 +223,7 @@ function move(dt){
   const ci=player.pos;
   if(state.loc==='rotunda'){
     const r=Math.hypot(ci.x,ci.z);let lim=8.7;
-    for(const d of doors){const l=d.gate.group.worldToLocal(tmp.copy(ci));if(Math.abs(l.x)<1.3&&l.z>-1.2)lim=9.9;}
+    for(const d of doors){const l=d.gate.group.worldToLocal(tmp.copy(ci));if(Math.abs(l.x)<gateHalf(d.gate)&&l.z>-1.2)lim=d.gate.group.position.length()+.4;}
     if(r>lim){ci.x*=lim/r;ci.z*=lim/r;}
     if(r<1.25){const k=1.25/(r||1);ci.x=r?ci.x*k:1.25;ci.z*=r?k:1;}
   }else if(state.env){
@@ -237,12 +236,12 @@ function checkGates(){
   if(state.loc==='rotunda'){
     for(const d of doors){
       const l=d.gate.group.worldToLocal(tmp.copy(player.pos));
-      const crossed=d.prevZ>0&&l.z<=0&&Math.abs(l.x)<1.3;d.prevZ=l.z;
+      const crossed=d.prevZ>0&&l.z<=0&&Math.abs(l.x)<gateHalf(d.gate);d.prevZ=l.z;
       if(crossed){travel('env',d.i);return;}
     }
   }else if(state.env){
     const e=state.env,l=e.gate.group.worldToLocal(tmp.copy(player.pos));
-    const crossed=e.prevZ>0&&l.z<=0&&Math.abs(l.x)<1.7;e.prevZ=l.z;
+    const crossed=e.prevZ>0&&l.z<=0&&Math.abs(l.x)<gateHalf(e.gate);e.prevZ=l.z;
     if(crossed)travel('rotunda');
   }
 }
@@ -261,7 +260,7 @@ function tick(){
     camera.position.set(orbit.target.x+Math.sin(orbit.az)*ce*od,orbit.target.y+Math.sin(orbit.el)*od,orbit.target.z+Math.cos(orbit.az)*ce*od);
     camera.lookAt(orbit.target);
   }
-  followers.forEach(f=>f.position.copy(camera.position));
+  if(state.env)state.env.followers.forEach(f=>f.position.copy(camera.position));
   if(state.loc==='rotunda'){
     if(frame%3===0){hoverDoor=(ptr.has&&!drag)?pickDoor(ptr.x,ptr.y):-1;cv.classList.toggle('hot',hoverDoor>=0);}
     updateRotunda(t);doors.forEach(d=>d.update(t,dt,hoverDoor===d.i));
@@ -270,5 +269,5 @@ function tick(){
   }
   renderer.render(scene,camera);
 }
-window.__rotunda={state,doors,travel,getEnv:i=>getEnv(scene,i),REALMS,renderer,scene,camera};
+window.__rotunda={state,doors,travel,getEnv,REALMS,renderer,get scene(){return scene;},camera};
 refreshDock();selectDoor(-1);setMode('walk');resize();tick();
