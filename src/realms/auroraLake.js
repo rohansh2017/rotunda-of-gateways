@@ -19,7 +19,7 @@ export default function build(){
   water.rotation.x=-Math.PI/2;water.position.y=-.3;water.renderOrder=-1;g.add(water);
   const T={value:0},mirror=new THREE.Group();mirror.scale.y=-1;mirror.position.y=-.6;
   const AVS='varying vec2 vUv;uniform float uTime,uOff;void main(){vUv=uv;vec3 p=position;p.z+=sin(p.x*.035+uTime*.35+uOff)*16.+sin(p.x*.09+uTime*.6)*4.;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}';
-  const AFS='varying vec2 vUv;uniform float uTime,uOff,uK;uniform vec3 uA,uB;void main(){float v=vUv.y;float rays=.55+.45*sin(vUv.x*60.+uTime*.8+uOff*3.)*sin(vUv.x*23.-uTime*.5);float fade=smoothstep(0.,.12,v)*pow(1.-v,1.3);vec3 c=mix(uA,uB,v);gl_FragColor=vec4(c*rays*fade*uK,1.);}';
+  const AFS='varying vec2 vUv;uniform float uTime,uOff,uK;uniform vec3 uA,uB;void main(){float v=vUv.y;float rays=.55+.45*sin(vUv.x*60.+uTime*.8+uOff*3.)*sin(vUv.x*23.-uTime*.5);float fade=smoothstep(0.,.12,v)*pow(1.-v,1.3)*smoothstep(0.,.2,vUv.x)*smoothstep(1.,.8,vUv.x);vec3 c=mix(uA,uB,v);gl_FragColor=vec4(c*rays*fade*uK,1.);}';
   [[-100,0,[.1,1,.55],[.45,.2,1]],[-130,2,[.2,1,.8],[.8,.3,1]],[-165,4,[.1,.9,.5],[.3,.6,1]],[-85,6,[.4,1,.7],[.9,.4,.9]]].forEach(c=>{
     [false,true].forEach(m=>{
       const mat=new THREE.ShaderMaterial({uniforms:{uTime:T,uOff:{value:c[1]},uK:{value:m?.55:1.5},uA:{value:new THREE.Vector3(...c[2])},uB:{value:new THREE.Vector3(...c[3])}},vertexShader:AVS,fragmentShader:AFS,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,fog:false});

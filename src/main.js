@@ -62,7 +62,7 @@ function buildCards(d){
     cv.getContext('2d').drawImage(previewTex(ri).userData.canvas,0,96,256,192,0,0,256,192);
     const em=document.createElement('em');em.textContent=REALMS[ri].name;
     c.append(cv,em);
-    c.addEventListener('click',()=>{d.setChoice(k);refreshDock();buildCards(d);});
+    c.addEventListener('click',()=>{if(state.busy)return;d.setChoice(k);refreshDock();buildCards(d);});
     cards.appendChild(c);
   });
 }
@@ -73,14 +73,17 @@ function selectDoor(i){
   refreshDock();dimHint();
 }
 function cycleRealm(dir){
-  const d=doors[state.selected];if(!d||state.loc!=='rotunda')return;
+  const d=doors[state.selected];if(!d||state.loc!=='rotunda'||state.busy)return;
   d.setChoice((d.choice+dir+d.realms.length)%d.realms.length);refreshDock();buildCards(d);
 }
-function dimHint(){hint.style.opacity='0';}
-setTimeout(dimHint,14000);
+let hintT;
+function dimHint(){clearTimeout(hintT);hint.style.opacity='0';}
+function showHint(txt,ms){clearTimeout(hintT);if(txt)hint.textContent=txt;hint.style.opacity='1';hintT=setTimeout(dimHint,ms);}
+hintT=setTimeout(dimHint,14000);
 
 function setMode(m){
-  state.mode=m;btnMode.textContent=m==='orbit'?'Walk view':'Orbit view';btnMode.setAttribute('aria-pressed',String(m==='orbit'));
+  state.mode=m;if(m==='orbit')auto=null;
+  btnMode.textContent=m==='orbit'?'Walk view':'Orbit view';btnMode.setAttribute('aria-pressed',String(m==='orbit'));
   if(m==='orbit'){
     orbit.az=player.yaw;orbit.el=.3;
     if(state.loc==='rotunda'){orbit.target.set(0,2.6,0);orbit.dist=7.5;}
@@ -122,7 +125,7 @@ cv.addEventListener('pointermove',e=>{
 cv.addEventListener('pointerup',e=>{
   if(!drag||drag.id!==e.pointerId)return;
   const click=drag.moved<6&&performance.now()-drag.t<500;drag=null;cv.classList.remove('drag');
-  if(click){const i=pickDoor(e.clientX,e.clientY);selectDoor(i);}
+  if(click){if(!state.busy)selectDoor(pickDoor(e.clientX,e.clientY));}
 });
 cv.addEventListener('pointercancel',()=>{drag=null;cv.classList.remove('drag');});
 cv.addEventListener('pointerleave',()=>{ptr.has=false;});
@@ -134,11 +137,11 @@ addEventListener('keydown',e=>{
   if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift'].indexOf(k)>=0){
     keys[k]=true;if(k.indexOf('arrow')===0)e.preventDefault();
     if(k!=='shift'){auto=null;dimHint();}
-  }else if(k==='1'||k==='2'||k==='3'){if(state.loc==='rotunda')selectDoor(+k-1);}
+  }else if(k==='1'||k==='2'||k==='3'){if(state.loc==='rotunda'&&!state.busy)selectDoor(+k-1);}
   else if(k==='['||k===']'){cycleRealm(k===']'?1:-1);}
-  else if(k==='enter'){if(document.activeElement&&document.activeElement.tagName==='BUTTON')return;stepThrough();}
+  else if(k==='enter'){const a=document.activeElement;if(a&&a.tagName==='BUTTON'&&a.id!=='btnStep'&&!a.classList.contains('door')&&!a.classList.contains('card'))return;e.preventDefault();stepThrough();}
   else if(k==='o'){if(!state.busy)setMode(state.mode==='orbit'?'walk':'orbit');}
-  else if(k==='escape'){selectDoor(-1);}
+  else if(k==='escape'){auto=null;selectDoor(-1);}
 });
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
@@ -161,21 +164,21 @@ function stepThrough(){
 async function travel(kind,arg){
   if(state.busy)return;
   state.busy=true;auto=null;
-  const css=kind==='env'?REALMS[doors[arg].realmIndex()].css:REALMS[state.realm].css;
+  const ri=kind==='env'?doors[arg].realmIndex():state.realm,css=REALMS[ri].css;
   fade.style.setProperty('--fadeA',css);fade.style.setProperty('--fadeB','#05030a');fade.classList.add('on');
   await wait(reduceMotion?60:700);
-  try{if(kind==='env')enterRealm(arg);else leaveRealm();}catch(err){console.error(err);}
+  try{if(kind==='env')enterRealm(arg,ri);else leaveRealm();}catch(err){console.error(err);}
   await wait(180);fade.classList.remove('on');await wait(reduceMotion?60:700);
   state.busy=false;
 }
-function enterRealm(di){
-  const d=doors[di],ri=d.realmIndex(),e=getEnv(scene,ri);
+function enterRealm(di,ri){
+  const e=getEnv(scene,ri);
   state.loc='env';state.realm=ri;state.fromDoor=di;state.env=e;
   rotunda.visible=false;e.group.visible=true;
   scene.background=new THREE.Color(e.bg);scene.fog=new THREE.FogExp2(e.fog.color,e.fog.density);
   player.pos.set(e.spawn.x,1.7,e.spawn.z);player.yaw=e.spawn.yaw;player.pitch=0;player.vel.set(0,0,0);e.prevZ=1;
   selectDoor(-1);dock.hidden=true;btnReturn.hidden=false;whereEl.textContent=REALMS[ri].name;
-  hint.textContent='Walk back through the ring to return to the rotunda';hint.style.opacity='1';setTimeout(dimHint,7000);
+  showHint('Walk back through the ring to return to the rotunda',7000);
   setMode('walk');
 }
 function leaveRealm(){
@@ -194,7 +197,16 @@ function move(dt){
   if(state.busy||state.mode!=='walk')return;
   if(auto){
     const d=doors[auto.door],target=d.gate.group.localToWorld(new V3(0,1.7,-.6));
-    const dir=target.sub(player.pos);dir.y=0;const dist=dir.length();
+    const px=player.pos.x,pz=player.pos.z;let dx=target.x-px,dz=target.z-pz;
+    /* skip the central pedestal: if the straight line passes within 1.4 of the origin, aim at a tangent waypoint first */
+    const sl=dx*dx+dz*dz,tt=sl?clamp(-(px*dx+pz*dz)/sl,0,1):0;
+    if(Math.hypot(px+dx*tt,pz+dz*tt)<1.4){
+      const dp=Math.hypot(px,pz),pa=Math.atan2(pz,px),ta=Math.atan2(target.z,target.x);
+      if(!auto.side)auto.side=Math.sin(ta-pa)>=0?1:-1;
+      const wa=pa+auto.side*(dp>1.6?Math.acos(1.5/dp):.6),wr=Math.max(1.5,Math.min(dp,1.6));
+      dx=Math.cos(wa)*wr-px;dz=Math.sin(wa)*wr-pz;
+    }
+    const dir=tmp.set(dx,0,dz),dist=dir.length();
     if(dist>.02){
       dir.normalize();const step=Math.min(dist,4.2*dt);player.pos.x+=dir.x*step;player.pos.z+=dir.z*step;
       const want=Math.atan2(-dir.x,-dir.z);let dy=want-player.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));
