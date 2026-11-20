@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { instance } from './models.js';
 import { TAU, clamp, lerp, mulberry, fract, hash2, vnoise, fbm, canvasTex, spriteTex } from './util.js';
 
 /* ---------- the rotunda ---------- */
@@ -33,7 +34,9 @@ const floor=new THREE.Mesh(new THREE.CircleGeometry(R+.15,96),new THREE.MeshStan
 floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;rotunda.add(floor);
 
 /* walls */
-const SCONCE_U=.8333;
+/* CylinderGeometry u = 0 at +z, growing toward +x: u = 1/4 - angle/360 for onWall angles; texture u = u*repeat + offset (sconces repeat every 60 deg) */
+const WALL_REPEAT=6,WALL_OFFSET=1/12;
+const SCONCE_U=(((.25-45/360)*WALL_REPEAT+WALL_OFFSET)%1+1)%1;
 const wallTex=canvasTex(1024,512,(g,w,h)=>{
   const r=mulberry(3);
   g.fillStyle='#6a4635';g.fillRect(0,0,w,h);
@@ -54,8 +57,8 @@ const wallTex=canvasTex(1024,512,(g,w,h)=>{
   g.save();g.translate(w*SCONCE_U,h*(1-3.5/H));g.scale(1.6,1);
   const gl=g.createRadialGradient(0,0,0,0,0,110);gl.addColorStop(0,'rgba(255,170,80,.8)');gl.addColorStop(.5,'rgba(255,140,60,.35)');gl.addColorStop(1,'rgba(255,120,40,0)');
   g.fillStyle=gl;g.fillRect(-200,-200,400,400);g.restore();
-},{repeat:[6,1]});
-wallTex.offset.set(1/12,0);
+},{repeat:[WALL_REPEAT,1]});
+wallTex.offset.set(WALL_OFFSET,0);
 const wall=new THREE.Mesh(new THREE.CylinderGeometry(R,R,H,96,1,true),new THREE.MeshStandardMaterial({map:wallTex,roughness:.85,side:THREE.BackSide}));
 wall.position.y=H/2;wall.receiveShadow=true;rotunda.add(wall);
 
@@ -131,7 +134,7 @@ let spot;
   const disc=new THREE.Mesh(new THREE.CircleGeometry(2.4,64),new THREE.MeshBasicMaterial({map:roundTex,transparent:true,color:0xffffff}));
   const rim=new THREE.Mesh(new THREE.TorusGeometry(2.4,.13,12,96),brass);
   grp.add(disc,rim);rotunda.add(grp);
-  spot=new THREE.SpotLight(0xffe2ad,2.2,34,.55,.7,1);
+  spot=new THREE.SpotLight(0xffe2ad,3.4,34,.55,.7,1);
   spot.shadow.mapSize.set(1024,1024);spot.shadow.bias=-.0004;spot.shadow.normalBias=.03;
   spot.position.copy(grp.position).multiplyScalar(.85);spot.position.y=5.3;
   spot.target.position.set(0,0,-3);rotunda.add(spot,spot.target);
@@ -149,12 +152,28 @@ const flames=[];
   g.add(arm,cup,flame);rotunda.add(g);flames.push({flame,seed:Math.random()*10});
 });
 
+/* glTF props. Wall pieces sit against the wall between pilasters; free-standing ones get a circular collider (checked in main.js move()).
+   r is the distance from the centre of the room; models face +Z, so lookAt(centre) turns the front toward the room. */
+const colliders=[];
+function addProp(name,deg,r,collide){
+  const m=instance(name);if(!m)return false;
+  m.traverse(o=>{if(o.isMesh){o.castShadow=!/Glass/.test(o.material.name);o.receiveShadow=true;}});
+  const p=onWall(deg,r);m.position.set(p.x,0,p.z);if(r)m.lookAt(0,0,0);rotunda.add(m);
+  if(collide)colliders.push({x:p.x,z:p.z,r:collide});return true;
+}
+[0,60,120,180].forEach(a=>addProp('prop_bookshelf',a,9.25));
+addProp('prop_relic_case',150,9.2);
+addProp('prop_lectern',40,5.4,.75);
+addProp('prop_globe',140,5.4,.8);
+
 /* the central eye */
 const eye=new THREE.Group();eye.position.y=1.9;rotunda.add(eye);
 {
-  const ped=new THREE.Mesh(new THREE.CylinderGeometry(.55,.85,1.1,24),darkWood);ped.position.y=.55;
-  const band=new THREE.Mesh(new THREE.TorusGeometry(.72,.05,10,48),brass);band.rotation.x=Math.PI/2;band.position.y=1.08;
-  ped.castShadow=band.castShadow=true;rotunda.add(ped,band);
+  if(!addProp('prop_pedestal',0,0)){
+    const ped=new THREE.Mesh(new THREE.CylinderGeometry(.55,.85,1.1,24),darkWood);ped.position.y=.55;
+    const band=new THREE.Mesh(new THREE.TorusGeometry(.72,.05,10,48),brass);band.rotation.x=Math.PI/2;band.position.y=1.08;
+    ped.castShadow=band.castShadow=true;rotunda.add(ped,band);
+  }
   const gold=new THREE.MeshBasicMaterial({color:0xffd27a});
   [[0,0],[1.1,0],[0,1.1]].forEach((r,i)=>{
     const t=new THREE.Mesh(new THREE.TorusGeometry(.5+i*.14,.025,8,64),gold);t.rotation.set(r[0],r[1],i*.7);t.castShadow=true;eye.add(t);
@@ -163,7 +182,7 @@ const eye=new THREE.Group();eye.position.y=1.9;rotunda.add(eye);
   const l=new THREE.PointLight(0xc8ffd8,.9,10,1.5);eye.add(l);
 }
 
-const hemi=new THREE.HemisphereLight(0xffe2bf,0x2a1810,1);
+const hemi=new THREE.HemisphereLight(0xffe2bf,0x2a1810,.8);
 const keyLight=new THREE.PointLight(0xffd9a0,.9,26,1.2);keyLight.position.set(0,H-.8,0);
 rotunda.add(hemi,keyLight);
 
@@ -176,4 +195,4 @@ function updateRotunda(t){
 rotunda.updateMatrixWorld(true);
 
 
-export { rotunda, R, H, brass, darkWood, onWall, floorTex, updateRotunda, setShadows };
+export { colliders, rotunda, R, H, brass, darkWood, onWall, floorTex, updateRotunda, setShadows };

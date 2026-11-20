@@ -1,6 +1,7 @@
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { TAU, clamp, lerp, mulberry, fract, hash2, vnoise, fbm, canvasTex, spriteTex } from './util.js';
-import { rotunda, H, updateRotunda, setShadows } from './rotunda.js';
+import { rotunda, H, colliders, updateRotunda, setShadows } from './rotunda.js';
 import { REALMS, previewTex } from './realms/catalog.js';
 import { doors, doorGroups } from './doors.js';
 import { getEnv } from './realms/index.js';
@@ -29,6 +30,16 @@ function resize(){
 window.addEventListener('resize',resize);resize();
 
 rotScene.add(rotunda);
+/* image-based light for the metals, rotunda only; intensities per material keep the room warm and dim */
+{
+  const pm=new THREE.PMREMGenerator(renderer);
+  rotScene.environment=pm.fromScene(new RoomEnvironment(),0.04).texture;pm.dispose();
+  const seen=new Set();
+  rotunda.traverse(o=>{if(!o.isMesh)return;[].concat(o.material).forEach(m=>{
+    if(!m.isMeshStandardMaterial||seen.has(m))return;seen.add(m);
+    m.envMapIntensity=m.metalness>.5?.8:.3;
+  });});
+}
 
 /* ---------- state, interface, controls ---------- */
 const V3=THREE.Vector3;
@@ -239,6 +250,7 @@ function move(dt){
     for(const d of doors){const l=d.gate.group.worldToLocal(tmp.copy(ci));if(Math.abs(l.x)<gateHalf(d.gate)&&l.z>-1.2)lim=d.gate.group.position.length()+.4;}
     if(r>lim){ci.x*=lim/r;ci.z*=lim/r;}
     if(r<1.25){const k=1.25/(r||1);ci.x=r?ci.x*k:1.25;ci.z*=r?k:1;}
+    for(const c of colliders){const dx=ci.x-c.x,dz=ci.z-c.z,d=Math.hypot(dx,dz);if(d<c.r){const k=c.r/(d||1);ci.x=c.x+dx*k;ci.z=c.z+dz*k;}}
   }else if(state.env){
     const e=state.env;
     if(e.clamp)e.clamp(ci);else{const r=Math.hypot(ci.x,ci.z);if(r>e.bounds){ci.x*=e.bounds/r;ci.z*=e.bounds/r;}}
@@ -283,5 +295,5 @@ function tick(){
   renderer.render(scene,camera);
   if(!fpsEl.hidden){fpsT+=dt;fpsN++;if(fpsT>=1){fpsEl.textContent=(fpsN/fpsT).toFixed(0)+' fps\n'+renderer.info.render.calls+' draws';fpsT=fpsN=0;}}
 }
-window.__rotunda={state,doors,travel,getEnv,REALMS,renderer,get scene(){return scene;},camera};
+window.__rotunda={state,player,doors,travel,getEnv,REALMS,renderer,get scene(){return scene;},camera};
 refreshDock();selectDoor(-1);setMode('walk');setQuality(low);tick();

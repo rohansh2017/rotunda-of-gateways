@@ -24,6 +24,9 @@ npm run check         # headless Edge smoke test (fps, draw calls, screenshots i
 
 ## Source map (`src/`)
 
+- `boot.js` - preloads the glTF models, then loads `main.js`
+- `models.js` - GLTFLoader, `instance(name)` returns a clone or null
+- `models/*.glb` - Blender-made door frames and props (scripts in `blender/`)
 - `main.js` - renderer, camera, input, UI, travel between scenes
 - `util.js` - math/noise helpers and canvas texture helpers
 - `sky.js` - sky dome and followers

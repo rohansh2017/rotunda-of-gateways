@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TAU, clamp, lerp, mulberry, fract, hash2, vnoise, fbm, canvasTex, spriteTex } from './util.js';
 import { brass } from './rotunda.js';
+import { instance } from './models.js';
 
 /* ---------- portal shader, gate builder, the three doors ---------- */
 const PORTAL_VS='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}';
@@ -67,31 +68,50 @@ const GATE_DIMS=[{w:4.4,h:4.4,cy:2.5},{w:3.2,h:5.0,cy:2.5},{w:3.0,h:4.6,cy:2.3}]
 const stoneMat=new THREE.MeshStandardMaterial({color:0x3a2a22,roughness:.6,metalness:.25});
 
 /* static frame around the opening: pushes meshes into g, tintable materials via glowMat/emis, animated parts into spinners.
-   Swap this for a loaded glTF frame; the portal plane, sparks and tinting stay in buildGate. */
-function buildFrame(shape,D,g,glowMat,emis,spinners,accent){
+   With a glTF frame (hasModel) only the animated/glow parts below are added. */
+const runeMat=(emis,accent,map)=>{
+  const m=new THREE.MeshStandardMaterial({color:0x2c1f19,roughness:.7,metalness:.15,emissive:accent,emissiveMap:map});emis.push(m);return m;
+};
+/* glTF UVs have v=0 at the image top, so the model's rune strip needs an unflipped copy of the canvas texture */
+const runeStripGltf=runeStrip.clone();runeStripGltf.flipY=false;runeStripGltf.needsUpdate=true;
+const FRAME_MODELS=['door_ring','door_arch','door_lintel'];
+/* adds a clone of the shape's glTF frame; Glow -> the gate's tintable additive material, RuneBand -> animated rune emissive */
+function addModelFrame(shape,g,glowMat,emis,accent){
+  const m=instance(FRAME_MODELS[shape]);if(!m)return false;
+  const swap=mt=>mt.name==='Glow'?glowMat(1):mt.name==='RuneBand'?runeMat(emis,accent,runeStripGltf):mt;
+  m.traverse(o=>{if(!o.isMesh)return;o.castShadow=o.receiveShadow=true;o.material=Array.isArray(o.material)?o.material.map(swap):swap(o.material);});
+  g.add(m);return true;
+}
+function buildFrame(shape,D,g,glowMat,emis,spinners,accent,hasModel){
+  /* hasModel: a glTF frame already provides the static meshes, so only the animated/glow parts are added here */
   if(shape===0){ /* sling-ring: brass hoop with orbiting spark arcs */
-    const hoop=new THREE.Mesh(new THREE.TorusGeometry(2.2,.15,18,110),brass);hoop.position.y=D.cy;g.add(hoop);
-    const outer=new THREE.Mesh(new THREE.TorusGeometry(2.48,.05,10,110),brass);outer.position.y=D.cy;g.add(outer);
-    for(let i=0;i<16;i++){const a=i/16*TAU;const t=new THREE.Mesh(new THREE.BoxGeometry(.08,.34,.1),brass);t.position.set(Math.cos(a)*2.34,D.cy+Math.sin(a)*2.34,0);t.rotation.z=a+Math.PI/2;g.add(t);}
+    if(!hasModel){
+      const hoop=new THREE.Mesh(new THREE.TorusGeometry(2.2,.15,18,110),brass);hoop.position.y=D.cy;g.add(hoop);
+      const outer=new THREE.Mesh(new THREE.TorusGeometry(2.48,.05,10,110),brass);outer.position.y=D.cy;g.add(outer);
+      for(let i=0;i<16;i++){const a=i/16*TAU;const t=new THREE.Mesh(new THREE.BoxGeometry(.08,.34,.1),brass);t.position.set(Math.cos(a)*2.34,D.cy+Math.sin(a)*2.34,0);t.rotation.z=a+Math.PI/2;g.add(t);}
+    }
     [[2.05,1.3,.7],[1.9,1.1,-.9],[2.14,.8,1.3]].forEach(c=>{
       const arc=new THREE.Mesh(new THREE.TorusGeometry(c[0],.04,8,64,Math.PI*c[1]),glowMat(.95));arc.position.set(0,D.cy,.04);g.add(arc);spinners.push([arc,c[2]]);
     });
   }else if(shape===1){ /* gothic arch of dark stone with a bright keystone */
-    const outer=archPts(D.w+.9,D.h+.55,20).map(p=>p[1]===0?[p[0],-.3]:p);
-    const s=new THREE.Shape(outer.map(p=>new THREE.Vector2(p[0],p[1])));
-    s.holes.push(new THREE.Path(archPts(D.w,D.h,20).map(p=>new THREE.Vector2(p[0],p[1]))));
-    const geo=new THREE.ExtrudeGeometry(s,{depth:.5,bevelEnabled:false});geo.translate(0,0,-.25);
-    g.add(new THREE.Mesh(geo,stoneMat));
+    if(!hasModel){
+      const outer=archPts(D.w+.9,D.h+.55,20).map(p=>p[1]===0?[p[0],-.3]:p);
+      const s=new THREE.Shape(outer.map(p=>new THREE.Vector2(p[0],p[1])));
+      s.holes.push(new THREE.Path(archPts(D.w,D.h,20).map(p=>new THREE.Vector2(p[0],p[1]))));
+      const geo=new THREE.ExtrudeGeometry(s,{depth:.5,bevelEnabled:false});geo.translate(0,0,-.25);
+      g.add(new THREE.Mesh(geo,stoneMat));
+    }
     const pts=archPts(D.w,D.h,24).map(p=>new THREE.Vector3(p[0],p[1],.27));
     const trim=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),160,.035,6),glowMat(1));g.add(trim);
     const gem=new THREE.Mesh(new THREE.OctahedronGeometry(.2),glowMat(1));gem.position.set(0,D.h+.12,.3);g.add(gem);spinners.push([gem,1.4,'y']);
-    [-1,1].forEach(sx=>{const b=new THREE.Mesh(new THREE.BoxGeometry(.5,.3,.7),brass);b.position.set(sx*(D.w/2+.45),.15,0);g.add(b);});
+    if(!hasModel)[-1,1].forEach(sx=>{const b=new THREE.Mesh(new THREE.BoxGeometry(.5,.3,.7),brass);b.position.set(sx*(D.w/2+.45),.15,0);g.add(b);});
   }else{ /* lintel with a band of glowing runes */
-    const mat=new THREE.MeshStandardMaterial({color:0x2c1f19,roughness:.7,metalness:.15,emissive:accent,emissiveMap:runeStrip});emis.push(mat);
+    const mat=hasModel?null:runeMat(emis,accent,runeStrip);
     [-1,1].forEach(sx=>{
-      const p=new THREE.Mesh(new THREE.BoxGeometry(.5,D.h+.5,.7),stoneMat);p.position.set(sx*(D.w/2+.25),(D.h+.5)/2,0);g.add(p);
+      if(!hasModel){const p=new THREE.Mesh(new THREE.BoxGeometry(.5,D.h+.5,.7),stoneMat);p.position.set(sx*(D.w/2+.25),(D.h+.5)/2,0);g.add(p);}
       const st=new THREE.Mesh(new THREE.BoxGeometry(.06,D.h-.6,.04),glowMat(1));st.position.set(sx*(D.w/2+.25),D.h/2,.36);g.add(st);
     });
+    if(hasModel)return;
     const lt=new THREE.Mesh(new THREE.BoxGeometry(D.w+1.5,.7,.8),[stoneMat,stoneMat,stoneMat,stoneMat,mat,stoneMat]);lt.position.set(0,D.h+.15,0);g.add(lt);
     const cap=new THREE.Mesh(new THREE.BoxGeometry(D.w+1.9,.18,.95),brass);cap.position.set(0,D.h+.58,0);g.add(cap);
     const step=new THREE.Mesh(new THREE.BoxGeometry(D.w+1.3,.12,1.3),stoneMat);step.position.set(0,.06,.35);g.add(step);
@@ -108,7 +128,7 @@ function buildGate(shape,accent,tex,opts){
   const basics=[],emis=[],spinners=[];
   const glowMat=(a)=>{const m=new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:a||1,blending:THREE.AdditiveBlending,depthWrite:false});basics.push(m);return m;};
 
-  buildFrame(shape,D,g,glowMat,emis,spinners,accent);
+  buildFrame(shape,D,g,glowMat,emis,spinners,accent,addModelFrame(shape,g,glowMat,emis,accent));
 
   if(opts.floorRing!==false){
     const rm=new THREE.MeshBasicMaterial({map:runeRingTex,color:accent,transparent:true,opacity:.75,blending:THREE.AdditiveBlending,depthWrite:false});basics.push(rm);

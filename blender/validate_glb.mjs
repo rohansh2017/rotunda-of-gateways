@@ -1,9 +1,9 @@
-// Usage: node blender/validate_glb.mjs [files...]  (default: all public/models/*.glb)
+// Usage: node blender/validate_glb.mjs [files...]  (default: all src/models/*.glb)
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "public", "models");
+const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "models");
 const files = process.argv.length > 2 ? process.argv.slice(2) : fs.readdirSync(dir).filter(f => f.endsWith(".glb")).map(f => path.join(dir, f));
 let total = 0;
 for (const f of files) {

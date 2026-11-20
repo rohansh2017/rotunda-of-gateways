@@ -4,7 +4,7 @@ from math import pi, sin, cos, radians
 from mathutils import Vector, Matrix
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODELS = os.path.join(ROOT, "public", "models")
+MODELS = os.path.join(ROOT, "src", "models")
 DOCS = os.path.join(ROOT, "docs", "blender")
 BLEND = os.path.join(ROOT, "blender")
 
