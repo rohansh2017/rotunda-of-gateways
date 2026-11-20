@@ -37,7 +37,7 @@ rotScene.add(rotunda);
   const seen=new Set();
   rotunda.traverse(o=>{if(!o.isMesh)return;[].concat(o.material).forEach(m=>{
     if(!m.isMeshStandardMaterial||seen.has(m))return;seen.add(m);
-    m.envMapIntensity=m.metalness>.5?.8:.3;
+    m.envMapIntensity=m.metalness>.5?.8:.07;
   });});
 }
 

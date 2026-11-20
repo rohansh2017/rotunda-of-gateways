@@ -20,7 +20,7 @@ export default function build(){
       'vec2 cs=sp*70.,cell=floor(cs);float st=step(.988,hash(cell))*(.5+.5*hash(cell+3.))*pow(smoothstep(.5,0.,length(fract(cs)-.5)),2.);c+=vec3(st);',
       'gl_FragColor=vec4(c,1.);}'].join('\n')}));
   sky.frustumCulled=false;followers.push(sky);g.add(sky);
-  const fm=new THREE.MeshStandardMaterial({map:floorTex,color:0xb7a8d6,roughness:.45,metalness:.25});
+  const fm=new THREE.MeshStandardMaterial({map:floorTex,color:0xb7a8d6,roughness:.8,metalness:.05});
   const dais=new THREE.Mesh(new THREE.CylinderGeometry(12,12,1.2,64),new THREE.MeshStandardMaterial({color:0x2c2440,roughness:.5,metalness:.3}));dais.position.y=-.6;g.add(dais);
   const topD=new THREE.Mesh(new THREE.CircleGeometry(12,64),fm);topD.rotation.x=-Math.PI/2;topD.position.y=.01;g.add(topD);
   const under=new THREE.Mesh(jagged(new THREE.ConeGeometry(12,16,24,5),2.5,.3,3),new THREE.MeshStandardMaterial({color:0x1a1428,roughness:1,flatShading:true}));under.rotation.x=Math.PI;under.position.y=-9.2;g.add(under);

@@ -70,7 +70,7 @@ const stoneMat=new THREE.MeshStandardMaterial({color:0x3a2a22,roughness:.6,metal
 /* static frame around the opening: pushes meshes into g, tintable materials via glowMat/emis, animated parts into spinners.
    With a glTF frame (hasModel) only the animated/glow parts below are added. */
 const runeMat=(emis,accent,map)=>{
-  const m=new THREE.MeshStandardMaterial({color:0x2c1f19,roughness:.7,metalness:.15,emissive:accent,emissiveMap:map});emis.push(m);return m;
+  const m=new THREE.MeshStandardMaterial({color:0x120a07,roughness:.8,metalness:.1,emissive:accent,emissiveMap:map});emis.push(m);return m;
 };
 /* glTF UVs have v=0 at the image top, so the model's rune strip needs an unflipped copy of the canvas texture */
 const runeStripGltf=runeStrip.clone();runeStripGltf.flipY=false;runeStripGltf.needsUpdate=true;

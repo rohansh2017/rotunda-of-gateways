@@ -6,7 +6,7 @@ import { TAU, clamp, lerp, mulberry, fract, hash2, vnoise, fbm, canvasTex, sprit
 const rotunda=new THREE.Group();
 const R=9.6,H=8;
 const brass=new THREE.MeshStandardMaterial({color:0xb8893a,metalness:.85,roughness:.35});
-const darkWood=new THREE.MeshStandardMaterial({color:0x2a1912,roughness:.7,metalness:.05});
+const darkWood=new THREE.MeshStandardMaterial({color:0x1a0e09,roughness:.95,metalness:0});
 const toRad=d=>d*Math.PI/180;
 const onWall=(deg,r)=>new THREE.Vector3(Math.cos(toRad(deg))*r,0,Math.sin(toRad(deg))*r);
 
