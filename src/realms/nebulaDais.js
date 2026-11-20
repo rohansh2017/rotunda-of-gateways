@@ -17,7 +17,7 @@ export default function build(){
       'void main(){vec3 d=normalize(vD);vec2 sp=vec2(atan(d.z,d.x),asin(clamp(d.y,-1.,1.)));',
       'float n1=fbm(sp*vec2(1.6,2.4)+uTime*.01);float n2=fbm(sp*vec2(2.6,3.6)+7.+vec2(-uTime*.015,0.));',
       'vec3 c=vec3(.02,.01,.07)+vec3(.55,.12,.62)*smoothstep(.38,.85,n1)+vec3(.04,.45,.55)*smoothstep(.45,.9,n2)*.8;',
-      'vec2 cell=floor(sp*vec2(70.,70.));float st=step(.988,hash(cell))*(.5+.5*hash(cell+3.));c+=vec3(st);',
+      'vec2 cs=sp*70.,cell=floor(cs);float st=step(.988,hash(cell))*(.5+.5*hash(cell+3.))*pow(smoothstep(.5,0.,length(fract(cs)-.5)),2.);c+=vec3(st);',
       'gl_FragColor=vec4(c,1.);}'].join('\n')}));
   sky.frustumCulled=false;followers.push(sky);g.add(sky);
   const fm=new THREE.MeshStandardMaterial({map:floorTex,color:0xb7a8d6,roughness:.45,metalness:.25});
