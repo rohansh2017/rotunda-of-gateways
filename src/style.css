@@ -1,0 +1,79 @@
+/* Layout: full-bleed 3D stage, brass-edged panels floating at the edges, door dock along the bottom. */
+:root{
+  --ink:#0d0807;
+  --panel:rgba(18,11,9,.8);
+  --line:rgba(201,162,75,.42);
+  --brass:#c9a24b;
+  --brass-hi:#f0cf86;
+  --ash:#e8dfcf;
+  --dim:#a89a84;
+  --rune:#7fd4c1;
+  --f-display:'Marcellus','Cormorant Garamond',Georgia,serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--ink);color:var(--ash);font-family:var(--f-display);overflow:hidden;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box}
+#stage{position:absolute;inset:0;touch-action:none}
+#stage canvas{display:block;width:100%;height:100%;cursor:grab}
+#stage canvas.hot{cursor:pointer}
+#stage canvas.drag{cursor:grabbing}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--rune);outline-offset:2px}
+
+.brand{position:absolute;left:16px;top:calc(14px + env(safe-area-inset-top,0px));pointer-events:none;max-width:60%}
+.brand h1{margin:0;font-weight:400;font-size:clamp(1.05rem,2.6vw,1.5rem);letter-spacing:.2em;text-transform:uppercase;color:var(--brass-hi);text-shadow:0 2px 14px rgba(0,0,0,.8);text-wrap:balance}
+.brand p{margin:6px 0 0;font-family:var(--f-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);text-shadow:0 1px 8px rgba(0,0,0,.9)}
+
+.tools{position:absolute;right:16px;top:calc(14px + env(safe-area-inset-top,0px));display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.btn{background:var(--panel);border:1px solid var(--line);padding:9px 14px;font-family:var(--f-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;border-radius:2px;backdrop-filter:blur(6px)}
+.btn:hover{border-color:var(--brass-hi);color:var(--brass-hi)}
+.btn[aria-pressed="true"]{background:rgba(201,162,75,.18);border-color:var(--brass-hi);color:var(--brass-hi)}
+
+#help{position:absolute;right:16px;top:calc(62px + env(safe-area-inset-top,0px));width:min(320px,calc(100% - 32px));background:var(--panel);border:1px solid var(--line);padding:14px 16px;backdrop-filter:blur(8px);font-family:var(--f-mono);font-size:.74rem;line-height:1.7;color:var(--ash)}
+#help dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 14px}
+#help dt{color:var(--brass-hi)}
+#help dd{margin:0;color:var(--dim)}
+
+#dock{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding-inline:16px}
+.door{min-width:0;flex:1 1 150px;max-width:230px;text-align:left;background:var(--panel);border:1px solid var(--line);padding:11px 14px 12px;border-radius:2px;backdrop-filter:blur(6px);position:relative;transition:border-color .2s,background .2s}
+.door b{display:block;font-weight:400;letter-spacing:.14em;text-transform:uppercase;font-size:.82rem;color:var(--ash)}
+.door span{display:block;margin-top:5px;font-family:var(--f-mono);font-size:.68rem;letter-spacing:.06em;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.door i{position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--glow,var(--brass));opacity:.7}
+.door:hover,.door[aria-pressed="true"]{border-color:var(--brass-hi);background:rgba(36,22,16,.88)}
+.door[aria-pressed="true"] i{opacity:1;box-shadow:0 0 14px var(--glow,var(--brass))}
+
+#realms{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(104px + env(safe-area-inset-bottom,0px));width:min(680px,calc(100% - 32px));background:var(--panel);border:1px solid var(--line);padding:14px 16px 16px;backdrop-filter:blur(10px)}
+#realms h2{margin:0 0 12px;font-weight:400;font-size:.9rem;letter-spacing:.18em;text-transform:uppercase;color:var(--brass-hi)}
+#cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.card{padding:0;background:#120b09;border:1px solid var(--line);border-radius:2px;overflow:hidden;text-align:left;display:flex;flex-direction:column}
+.card canvas{display:block;width:100%;height:auto;aspect-ratio:2/1.5;object-fit:cover;opacity:.82;transition:opacity .2s}
+.card em{display:block;padding:8px 10px 9px;font-style:normal;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase}
+.card:hover canvas,.card[aria-pressed="true"] canvas{opacity:1}
+.card[aria-pressed="true"]{border-color:var(--rune);box-shadow:0 0 0 1px var(--rune)}
+.card[aria-pressed="true"] em{color:var(--rune)}
+#realms .row{display:flex;gap:10px;margin-top:12px;justify-content:flex-end;flex-wrap:wrap}
+.primary{background:var(--brass);color:#1a0f08;border-color:var(--brass-hi)}
+.primary:hover{background:var(--brass-hi);color:#1a0f08}
+
+#btnReturn{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+#hint{position:absolute;left:0;right:0;top:calc(78px + env(safe-area-inset-top,0px));text-align:center;padding-inline:16px;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);pointer-events:none;text-shadow:0 1px 8px #000;transition:opacity 1.2s}
+#fade{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 50%,var(--fadeA,#fff) 0%,var(--fadeB,#000) 70%);transition:opacity .65s ease-in-out}
+#fade.on{opacity:1;pointer-events:auto}
+#pad{position:absolute;left:16px;bottom:calc(112px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(2,46px);gap:6px}
+#pad button{background:var(--panel);border:1px solid var(--line);border-radius:2px;font-size:1rem;touch-action:none;user-select:none}
+#pad button:nth-child(1){grid-column:2}
+#nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;font-size:1.1rem;line-height:1.6;color:var(--ash)}
+
+@media (max-width:620px){
+  .brand{max-width:52%}
+  #cards{gap:6px}
+  .card em{font-size:.66rem;padding:6px 7px}
+  #realms{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+  #pad{bottom:calc(190px + env(safe-area-inset-bottom,0px))}
+  .door{flex:1 1 30%}
+  .door b{font-size:.7rem;letter-spacing:.08em}
+}
+@media (prefers-reduced-motion:reduce){#fade{transition-duration:.01s}}

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rotunda of Gateways</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Marcellus&display=swap">
+<link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+<div id="stage" aria-label="Interactive 3D scene of the Rotunda of Gateways"></div>
+
+<header class="brand">
+  <h1>Rotunda of Gateways</h1>
+  <p id="where">Sanctum rotunda</p>
+</header>
+
+<div class="tools">
+  <button class="btn" id="btnMode" aria-pressed="false">Orbit view</button>
+  <button class="btn" id="btnHelp" aria-expanded="false" aria-controls="help">Controls</button>
+</div>
+
+<aside id="help" hidden>
+  <dl>
+    <dt>W A S D</dt><dd>Walk (arrows work too)</dd>
+    <dt>Shift</dt><dd>Run</dd>
+    <dt>Drag</dt><dd>Look around</dd>
+    <dt>Wheel</dt><dd>Zoom in orbit view</dd>
+    <dt>Click door</dt><dd>Select it, pick a realm</dd>
+    <dt>1 2 3</dt><dd>Select a door</dd>
+    <dt>[ ]</dt><dd>Cycle the realm of the selected door</dd>
+    <dt>Enter</dt><dd>Step through the selected door</dd>
+    <dt>O</dt><dd>Orbit or walk</dd>
+  </dl>
+</aside>
+
+<section id="realms" hidden aria-label="Realm picker">
+  <h2 id="realmsTitle"></h2>
+  <div id="cards"></div>
+  <div class="row">
+    <button class="btn" id="btnClose">Close</button>
+    <button class="btn primary" id="btnStep">Step through</button>
+  </div>
+</section>
+
+<nav id="dock" aria-label="Doors"></nav>
+<button class="btn" id="btnReturn" hidden>Return to the Rotunda</button>
+<div id="hint">Walk up to a door, or click one to choose where it leads</div>
+<div id="pad" hidden>
+  <button data-k="w" aria-label="Forward">&#9650;</button>
+  <button data-k="a" aria-label="Left">&#9664;</button>
+  <button data-k="s" aria-label="Back">&#9660;</button>
+  <button data-k="d" aria-label="Right">&#9654;</button>
+</div>
+<div id="fade"></div>
+<div id="nogl" hidden>This scene needs WebGL, which this browser did not provide. Try a recent version of Chrome, Safari, Edge or Firefox.</div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
